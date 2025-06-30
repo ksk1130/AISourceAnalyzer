@@ -1,0 +1,19 @@
+以下にJavaのコードを示しますので、ソースコードの内容を理解し、コードの説明を行ってください。その際の留意点を以下に示します。
+1.コードの説明は日本語で行うこと
+2.コードの説明はコードの内容に基づいて行うこと(コードに書いていないことは記載しないこと)
+3.説明は以下のように行うこと
+===== 記載例 =====
+X. create()メソッド:
+- 引数:
+  - Provider provider: 使用するチャットモデルプロバイダー
+  - String modelId: モデルID
+  - String regionOrEndpoint: 地域情報またはエンドポイント
+  - String profileOrApiKey: プロファイルまたはAPIキー
+- 戻り値: StreamingChatModel
+- 例外: IllegalArgumentException
+- 処理内容:
+  - providerの値によって、BedrockStreamingChatModelまたはAzureOpenAiStreamingChatModelのインスタンスを生成してい ます。
+  - BedrockStreamingChatModelの場合は、regionOrEndpointを使ってRegionオブジェクトを作成し、modelIdを設定していま す。
+  - AzureOpenAiStreamingChatModelの場合は、regionOrEndpointをエンドポイントとして、profileOrApiKeyをAPIキーとして設定しています。
+  - 不明なproviderが指定された場合は、IllegalArgumentExceptionをスローします。
+===== 記載例 =====
