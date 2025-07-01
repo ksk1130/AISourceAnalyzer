@@ -9,6 +9,8 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -62,14 +64,14 @@ public class App implements Runnable {
             logger.info("プロパティファイルからパラメータを読み込み: {}", propPath);
             model = ChatModelFactory.createFromProperties(
                     ChatModelFactory.Provider.BEDROCK,
-                    "anthropic.claude-3-haiku-20240307-v1:0",
+                    "anthropic.claude-3-5-sonnet-20240620-v1:0",
                     "ap-northeast-1",
                     null,
                     propPath);
         } else {
             model = ChatModelFactory.create(
                     ChatModelFactory.Provider.BEDROCK,
-                    "anthropic.claude-3-haiku-20240307-v1:0",
+                    "anthropic.claude-3-5-sonnet-20240620-v1:0",
                     "ap-northeast-1",
                     null // profileOrApiKeyは未使用
             );
@@ -118,22 +120,34 @@ public class App implements Runnable {
      * @throws Exception 読み込みに失敗した場合
      */
     private static String tryReadStringWithEncodings(Path path) throws Exception {
+        // ファイルが存在しない場合は例外を発生させる
+        if (!Files.exists(path)) {
+            throw new IOException("ファイルが存在しません: " + path);
+        }
+
+        Exception lastException = null;
+        
+        // UTF-8で試行
         try {
             logger.info("ファイルをUTF-8で読み込み: {}", path);
             return Files.readString(path, StandardCharsets.UTF_8).trim();
-        } catch (Exception e) {
-            // UTF-8で失敗した場合はShift_JISで再試行
-            try {
-                logger.info("UTF-8での読み込みに失敗。Shift_JISで再試行: {}", path);
-                return Files.readString(path, Charset.forName("Shift_JIS")).trim();
-            } catch (Exception e2) {
-                throw new Exception(path + " の読み込みに失敗しました（UTF-8/Shift_JIS両方）: " + e2.getMessage());
-            }
+        } catch (IOException | UncheckedIOException e) {
+            logger.debug("UTF-8での読み込みに失敗: {}", e.getMessage());
+            lastException = e instanceof IOException ? (IOException) e : new IOException(e);
+        }
+        
+        // Shift_JISで試行
+        try {
+            logger.info("UTF-8での読み込みに失敗。Shift_JISで再試行: {}", path);
+            return Files.readString(path, Charset.forName("Shift_JIS")).trim();
+        } catch (IOException | UncheckedIOException e) {
+            logger.debug("Shift_JISでの読み込みに失敗: {}", e.getMessage());
+            throw new Exception(path + " の読み込みに失敗しました（UTF-8/Shift_JIS両方）", lastException);
         }
     }
 
     public static void main(String[] args) {
-        int exitCode = new CommandLine(new RunStreamChatWithLangChain4j()).execute(args);
+        int exitCode = new CommandLine(new App()).execute(args);
         System.exit(exitCode);
     }
 }
