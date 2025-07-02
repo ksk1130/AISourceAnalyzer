@@ -38,6 +38,24 @@ public class App implements Runnable {
     @Option(names = { "--prop" }, required = false, description = "プロパティファイルのパス")
     private String propPath;
 
+    // モデルIDをenumで管理
+    enum ModelId {
+        CLAUDE_3_5_SONNET("anthropic.claude-3-5-sonnet-20240620-v1:0"),
+        CLAUDE_3_5_SONNET_v2("apac.anthropic.claude-3-5-sonnet-20241022-v2:0"),
+        CLAUDE_3_7_SONNET("apac.anthropic.claude-3-7-sonnet-20250219-v1:0"),
+        CLAUDE_4_0_SONNET("apac.anthropic.claude-sonnet-4-20250514-v1:0");
+
+        private final String value;
+
+        ModelId(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
     @Override
     public void run() {
         String basePrompt = "";
@@ -59,22 +77,26 @@ public class App implements Runnable {
         }
 
         // ChatModelFactoryを使ってBedrock用モデルを生成
-        StreamingChatModel model;
+        StreamingChatModel model = null;
+
+        String modelId = ModelId.CLAUDE_3_5_SONNET.getValue();
+        String region = "ap-northeast-1";
+        String profileOrApiKey = null;
+
         if (propPath != null) {
             logger.info("プロパティファイルからパラメータを読み込み: {}", propPath);
             model = ChatModelFactory.createFromProperties(
                     ChatModelFactory.Provider.BEDROCK,
-                    "anthropic.claude-3-5-sonnet-20240620-v1:0",
-                    "ap-northeast-1",
-                    null,
+                    modelId,
+                    region,
+                    profileOrApiKey,
                     propPath);
         } else {
             model = ChatModelFactory.create(
                     ChatModelFactory.Provider.BEDROCK,
-                    "anthropic.claude-3-5-sonnet-20240620-v1:0",
-                    "ap-northeast-1",
-                    null // profileOrApiKeyは未使用
-            );
+                    modelId,
+                    region,
+                    profileOrApiKey);
         }
 
         // 入力トークン数（日本語はざっくり1文字=1トークンとみなす）
@@ -126,7 +148,7 @@ public class App implements Runnable {
         }
 
         Exception lastException = null;
-        
+
         // UTF-8で試行
         try {
             logger.info("ファイルをUTF-8で読み込み: {}", path);
@@ -135,7 +157,7 @@ public class App implements Runnable {
             logger.debug("UTF-8での読み込みに失敗: {}", e.getMessage());
             lastException = e instanceof IOException ? (IOException) e : new IOException(e);
         }
-        
+
         // Shift_JISで試行
         try {
             logger.info("UTF-8での読み込みに失敗。Shift_JISで再試行: {}", path);
