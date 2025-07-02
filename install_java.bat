@@ -23,8 +23,10 @@ for /d %%D in (C:\bin\jdk-21-tmp\*) do (
     move "%%D" "C:\bin\jdk-21"
 )
 rmdir /s /q "C:\bin\jdk-21-tmp"
+rm "C:\bin\amazon-corretto-21-x64-windows-jdk.zip"
 
 REM 完了メッセージ
+C:\bin\jdk-21\bin\java -version
 echo JDK展開完了: C:\bin\jdk-21\bin\java
 
 endlocal
